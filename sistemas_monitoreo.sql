@@ -1159,7 +1159,7 @@ SELECT
                     op.nombre               AS 'Nombre',
                     op.apellido             AS 'Apellido',
                     (SELECT                                 
-                                COUNT(*)
+                                COUNT(*) as total
                     FROM        ordenes_trabajo ot
                     WHERE       op.id_operador = ot.id_operador
                     GROUP BY    ot.id_operador
@@ -1179,5 +1179,42 @@ GROUP BY            op.id_operador, op.nombre, op.apellido
 HAVING              COUNT(*) > 2;                    
 
 
+
+-- Muestra el nombre del robot junto con el nombre del operador que tiene asignada la orden de trabajo con la fecha más reciente
+SELECT
+                    r.nombre                AS 'Nombre del robot',
+                    op.nombre               AS 'nombre del operador',
+                    op.apellido             AS 'Apellido del operador',
+                    MAX(ot.created_at)      AS 'fecha mas reiente'
+FROM                robots r
+JOIN                ordenes_trabajo ot ON ot.id_robot = r.id_robot     
+JOIN                operadores op ON op.id_operador = ot.id_operador
+GROUP BY            r.nombre, op.nombre, op.apellido
+ORDER BY            MAX(ot.created_at) LIMIT 1;
+
+
+-- Muestra el nombre del robot y el promedio de duración de sus órdenes de trabajo pero solo los robots cuyo promedio sea mayor a 5 horas
+SELECT
+                    r.id_robot              AS 'ID',
+                    r.nombre                AS 'Nombre',
+                    AVG(duracion_horas)     AS 'Promedio de horas'
+FROM                robots r
+JOIN                ordenes_trabajo ot ON ot.id_robot = r.id_robot
+GROUP BY            r.id_robot,r.nombre
+HAVING              AVG(duracion_horas) > 5;
+
+
+
+--Muestra el nombre del operador y la cantidad de órdenes que tiene en estado 'pendiente' ordenado de mayor a menor
+SELECT
+                    op.id_operador              AS 'ID',
+                    op.nombre                   AS 'Nombre',
+                    op.apellido                 AS 'Apellido',
+                    COUNT(ot.estado)                    AS 'Total'
+FROM                operadores op
+JOIN                ordenes_trabajo ot ON ot.id_operador = op.id_operador
+WHERE               ot.estado = 'pendiente'
+GROUP BY            op.id_operador, op.nombre, op.apellido
+ORDER BY            COUNT(ot.estado) DESC;   
 
 
