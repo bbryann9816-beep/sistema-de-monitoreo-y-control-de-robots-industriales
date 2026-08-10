@@ -1263,4 +1263,17 @@ JOIN                ordenes_trabajo OT ON ot.id_operador= op.id_operador
 GROUP BY            op.id_operador, op.nombre, op.apellido
 HAVING              SUM(duracion_horas) > 20
 ORDER BY            SUM(duracion_horas) DESC;
+
+--Muestra el nombre del robot el nombre del operador y la fecha de la orden de todas las órdenes que estén en estado 'en progreso'
+SELECT
+                    r.id_robot                  AS 'ID del robot',
+                    r.nombre                    AS 'Nombre del robot',
+                    op.id_operador              AS 'ID del operador',
+                    op.nombre                   AS 'Nombre',
+                    op.apellido                 AS 'Apellido',
+                    ot.created_at               AS 'Fecha'
+FROM                robots r
+JOIN                ordenes_trabajo ot ON ot.id_robot = r.id_robot
+JOIN                operadores op ON op.id_operador = ot.id_operador
+WHERE               ot.estado = 'en_progreso';        
                                                                             
