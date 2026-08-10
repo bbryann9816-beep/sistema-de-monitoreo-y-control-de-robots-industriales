@@ -1250,4 +1250,17 @@ HAVING              COUNT(*) < (
                                             COUNT(*) AS total
                                     FROM    ordenes_trabajo
                                     GROUP BY id_operador) AS sub);
-                                                         
+
+
+--Muestra el nombre del operador su apellido y el total de horas trabajadas de todas sus órdenes ordenado de mayor a menor pero solo los operadores que tengan más de 20 horas en total
+SELECT
+                    op.id_operador              AS 'ID',
+                    op.nombre                   AS 'Nombre',
+                    op.apellido                 AS 'Apeliido',
+                    SUM(duracion_horas)                    AS 'Total'
+FROM                operadores op
+JOIN                ordenes_trabajo OT ON ot.id_operador= op.id_operador
+GROUP BY            op.id_operador, op.nombre, op.apellido
+HAVING              SUM(duracion_horas) > 20
+ORDER BY            SUM(duracion_horas) DESC;
+                                                                            
