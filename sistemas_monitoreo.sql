@@ -1218,3 +1218,19 @@ GROUP BY            op.id_operador, op.nombre, op.apellido
 ORDER BY            COUNT(ot.estado) DESC;   
 
 
+--Muestra el nombre del robot y el total de órdenes que tiene asignadas pero solo los robots que tengan más órdenes que el promedio de órdenes de todos los robots
+SELECT
+                    r.id_robot                  AS 'ID',
+                    r.nombre                    AS 'Nombre',
+                    COUNT(*)                    AS 'Total'
+FROM                robots r
+JOIN                ordenes_trabajo ot ON ot.id_robot =r.id_robot
+GROUP BY            r.nombre, r.id_robot
+HAVING              COUNT(*) > (
+                            SELECT AVG(total)
+                            FROM (SELECT COUNT(*) AS total
+                            FROM ordenes_trabajo
+                            GROUP BY id_robot) AS sub
+);                 
+
+
