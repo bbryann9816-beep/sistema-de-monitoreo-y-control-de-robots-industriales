@@ -1234,3 +1234,20 @@ HAVING              COUNT(*) > (
 );                 
 
 
+--Muestra los operadores cuya cantidad de órdenes sea menor al promedio de órdenes de todos los operadores
+SELECT
+                    op.id_operador              AS 'ID',
+                    op.nombre                   AS 'Nombre',
+                    op.apellido                 AS 'Apellido',
+                    COUNT(*)                    AS 'Total'
+FROM                operadores op
+JOIN                ordenes_trabajo ot ON ot.id_operador= op.id_operador
+GROUP BY            op.id_operador, op.apellido, op.nombre
+HAVING              COUNT(*) < (
+                            SELECT
+                                    AVG(total)
+                            FROM    (SELECT
+                                            COUNT(*) AS total
+                                    FROM    ordenes_trabajo
+                                    GROUP BY id_operador) AS sub);
+                                                         
