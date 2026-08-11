@@ -1309,3 +1309,19 @@ FROM                robots r
 JOIN                ordenes_trabajo ot ON ot.id_robot = r.id_robot
 JOIN                operadores op ON op.id_operador = ot.id_operador
 WHERE               ot.estado = 'en_progreso'; 
+
+--Muestra el nombre del operador su apellido y el promedio de horas de sus órdenes pero solo los operadores cuyo promedio sea mayor al promedio general de todas las órdenes
+SELECT      op.id_operador          AS 'ID del operador',
+            op.nombre               AS 'Nombre',
+            op.apellido             AS 'Apellido',
+            AVG(duracion_horas)     AS 'Promedio'
+FROM        operadores op
+JOIN        ordenes_trabajo ot ON ot.id_operador = op.id_operador
+GROUP BY    op.id_operador, op.nombre, op.apellido
+HAVING      AVG(duracion_horas) > (
+                SELECT AVG(duracion_horas)
+                FROM ordenes_trabajo
+            );
+
+
+            
