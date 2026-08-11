@@ -1231,6 +1231,26 @@ HAVING              COUNT(*) > (
                             FROM (SELECT COUNT(*) AS total
                             FROM ordenes_trabajo
                             GROUP BY id_robot) AS sub
-);                 
+);
+
+--Muestra el nombre y apellido de todos los operadores que tengan órdenes en estado 'completado' sin repetir operadores
+SELECT
+                    DISTINCT
+                    op.id_operador              AS 'ID',
+                    op.nombre                   AS 'Nombre',
+                    op.apellido                 AS 'Apellido'
+FROM                operadores op
+INNER JOIN          ordenes_trabajo ot ON ot.id_operador = op.id_operador
+WHERE               ot.estado = 'competado';
+
+--Muestra el nombre del robot y el total de órdenes que tiene cada robot ordenado de mayor a menor incluyendo los robots que no tienen órdenes
+SELECT
+                    r.id_robot                           AS 'ID',
+                    r.nombre                             AS 'Nombre',
+                    COUNT(r.id_robot)                    AS 'Total'                    
+FROM                robots r
+LEFT JOIN           ordenes_trabajo ot ON ot.id_robot = r.id_robot
+GROUP BY            r.id_robot, r.nombre
+ORDER BY            COUNT(r.id_robot) DESC;               
 
 
