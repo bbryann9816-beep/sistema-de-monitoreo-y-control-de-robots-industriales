@@ -1255,6 +1255,39 @@ ORDER BY            COUNT(r.id_robot) DESC
 WHERE               ot.estado = 'competado';                    
 
 
+--Muestra el nombre del operador su apellido y el promedio de horas de sus órdenes pero solo los operadores cuyo promedio sea mayor al promedio general de todas las órdenes
+SELECT
+                    op.id_operador              AS 'ID del operador',
+                    op.nombre                   AS 'Nombre',
+                    op.apellido                 AS 'Apellido',
+                    AVG(duracion_horas)         AS 'Total'
+FROM                operadores op
+JOIN                ordenes_trabajo ot ON ot.id_operador = op.id_operador
+GROUP BY            op.id_operador, op.nombre, op.apellido
+HAVING              AVG(duracion_horas) > (
+                                    SELECT
+                                            AVG(duracion_horas)
+                                    FROM    ordenes_trabajo);
+
+--Muestra el nombre del robot y el total de órdenes que tiene cada robot ordenado de mayor a menor incluyendo los robots que no tienen órdenes
+SELECT      r.id_robot              AS 'ID',
+            r.nombre                AS 'Nombre',
+            COUNT(ot.id_robot)      AS 'Total'
+FROM        robots r
+LEFT JOIN   ordenes_trabajo ot ON ot.id_robot = r.id_robot
+GROUP BY    r.id_robot, r.nombre
+ORDER BY    COUNT(ot.id_robot) DESC;
+
+
+--Muestra el nombre y apellido de todos los operadores que tengan órdenes en estado 'completado' sin repetir operadores
+SELECT      DISTINCT
+            op.id_operador      AS 'ID',
+            op.nombre           AS 'Nombre',
+            op.apellido         AS 'Apellido'
+FROM        operadores op
+INNER JOIN  ordenes_trabajo ot ON ot.id_operador = op.id_operador
+WHERE       ot.estado = 'completado';
+
 --Muestra los operadores cuya cantidad de órdenes sea menor al promedio de órdenes de todos los operadores
 SELECT
                     op.id_operador              AS 'ID',
@@ -1298,3 +1331,4 @@ JOIN                ordenes_trabajo ot ON ot.id_robot = r.id_robot
 JOIN                operadores op ON op.id_operador = ot.id_operador
 WHERE               ot.estado = 'en_progreso';        
                                                                             
+
