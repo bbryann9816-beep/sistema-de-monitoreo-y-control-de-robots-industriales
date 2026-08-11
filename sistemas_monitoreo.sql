@@ -1251,6 +1251,50 @@ SELECT
 FROM                robots r
 LEFT JOIN           ordenes_trabajo ot ON ot.id_robot = r.id_robot
 GROUP BY            r.id_robot, r.nombre
-ORDER BY            COUNT(r.id_robot) DESC;               
+ORDER BY            COUNT(r.id_robot) DESC              
+WHERE               ot.estado = 'competado';                    
 
 
+--Muestra los operadores cuya cantidad de órdenes sea menor al promedio de órdenes de todos los operadores
+SELECT
+                    op.id_operador              AS 'ID',
+                    op.nombre                   AS 'Nombre',
+                    op.apellido                 AS 'Apellido',
+                    COUNT(*)                    AS 'Total'
+FROM                operadores op
+JOIN                ordenes_trabajo ot ON ot.id_operador= op.id_operador
+GROUP BY            op.id_operador, op.apellido, op.nombre
+HAVING              COUNT(*) < (
+                            SELECT
+                                    AVG(total)
+                            FROM    (SELECT
+                                            COUNT(*) AS total
+                                    FROM    ordenes_trabajo
+                                    GROUP BY id_operador) AS sub);
+
+
+--Muestra el nombre del operador su apellido y el total de horas trabajadas de todas sus órdenes ordenado de mayor a menor pero solo los operadores que tengan más de 20 horas en total
+SELECT
+                    op.id_operador              AS 'ID',
+                    op.nombre                   AS 'Nombre',
+                    op.apellido                 AS 'Apeliido',
+                    SUM(duracion_horas)                    AS 'Total'
+FROM                operadores op
+JOIN                ordenes_trabajo OT ON ot.id_operador= op.id_operador
+GROUP BY            op.id_operador, op.nombre, op.apellido
+HAVING              SUM(duracion_horas) > 20
+ORDER BY            SUM(duracion_horas) DESC;
+
+--Muestra el nombre del robot el nombre del operador y la fecha de la orden de todas las órdenes que estén en estado 'en progreso'
+SELECT
+                    r.id_robot                  AS 'ID del robot',
+                    r.nombre                    AS 'Nombre del robot',
+                    op.id_operador              AS 'ID del operador',
+                    op.nombre                   AS 'Nombre',
+                    op.apellido                 AS 'Apellido',
+                    ot.created_at               AS 'Fecha'
+FROM                robots r
+JOIN                ordenes_trabajo ot ON ot.id_robot = r.id_robot
+JOIN                operadores op ON op.id_operador = ot.id_operador
+WHERE               ot.estado = 'en_progreso';        
+                                                                            
