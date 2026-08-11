@@ -1323,5 +1323,54 @@ HAVING      AVG(duracion_horas) > (
                 FROM ordenes_trabajo
             );
 
+--Muestra el nombre y apellido de los operadores que tienen más órdenes que el operador con id_operador = 3
+SELECT
+            op.id_operador          AS 'ID',
+            op.nombre               AS 'Nombre',
+            op.apellido             AS 'Apellido',
+            COUNT(*)                AS 'Total'
+FROM        operadores op
+JOIN        ordenes_trabajo ot ON ot.id_operador = op.id_operador
+GROUP BY    op.id_operador, op.nombre, op.apellido
+HAVING      COUNT(*) > (
+                        SELECT COUNT(*)
+                        FROM   ordenes_trabajo
+                        WHERE id_operador = 3
+);
 
-            
+--Muestra el nombre del robot y su total de órdenes pero solo los robots que tienen más órdenes que el promedio de órdenes de todos los robots
+SELECT
+            r.id_robot              AS 'ID del robot',
+            r.nombre                AS 'Nombre',
+            count(*)                AS 'Total'
+FROM        robots r
+JOIN        ordenes_trabajo ot ON ot.id_robot = r.id_robot
+GROUP BY    r.id_robot, r.nombre
+HAVING      COUNT(*)> (
+                    SELECT AVG(total)
+                    FROM ( 
+                        SELECT  COUNT(*) as total
+                        FROM    ordenes_trabajo
+                        GROUP BY id_robot
+                    ) AS sub
+                    
+);
+
+
+--Muestra el nombre del operador el total de órdenes el máximo de horas trabajadas y el 
+--mínimo de horas trabajadas pero solo de operadores que tengan más de 3 órdenes y cuyo promedio de horas sea mayor a 8
+SELECT
+            op.id_operador              AS 'ID del operador',
+            op.nombre                   AS 'Nombre',
+            op.apellido                 AS 'Apellido',
+            count(*)                    AS 'Total',
+            MAX(duracion_horas)         AS 'Maxima duracion',
+            MIN(duracion_horas)         AS 'Minima duracion'
+FROM        operadores op
+JOIN        ordenes_trabajo ot ON ot.id_operador = op.id_operador
+GROUP BY    op.id_operador, op.nombre, op.apellido
+HAVING      COUNT(*) > 3
+AND         AVG(duracion_horas) > 8;
+    
+
+
