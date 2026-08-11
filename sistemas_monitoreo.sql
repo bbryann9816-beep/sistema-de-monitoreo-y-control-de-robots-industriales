@@ -1241,8 +1241,18 @@ SELECT
                     op.apellido                 AS 'Apellido'
 FROM                operadores op
 INNER JOIN          ordenes_trabajo ot ON ot.id_operador = op.id_operador
-WHERE               ot.estado = 'competado';                    
+WHERE               ot.estado = 'competado';
 
+--Muestra el nombre del robot y el total de órdenes que tiene cada robot ordenado de mayor a menor incluyendo los robots que no tienen órdenes
+SELECT
+                    r.id_robot                           AS 'ID',
+                    r.nombre                             AS 'Nombre',
+                    COUNT(r.id_robot)                    AS 'Total'                    
+FROM                robots r
+LEFT JOIN           ordenes_trabajo ot ON ot.id_robot = r.id_robot
+GROUP BY            r.id_robot, r.nombre
+ORDER BY            COUNT(r.id_robot) DESC              
+WHERE               ot.estado = 'competado';                    
 
 
 --Muestra los operadores cuya cantidad de órdenes sea menor al promedio de órdenes de todos los operadores
