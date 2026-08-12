@@ -1371,6 +1371,116 @@ JOIN        ordenes_trabajo ot ON ot.id_operador = op.id_operador
 GROUP BY    op.id_operador, op.nombre, op.apellido
 HAVING      COUNT(*) > 3
 AND         AVG(duracion_horas) > 8;
-    
+
+
+--Muestra el nombre del operador la duración de horas y la posición de cada orden dentro de cada operador ordenado de mayor a menor por horas
+SELECT
+            op.id_operador              AS 'ID',
+            op.nombre                   AS 'Nombre',
+            op.apellido                 AS 'Apellido',
+            ot.duracion_horas           AS 'Duracion',
+            ROW_NUMBER () OVER (
+                        PARTITION BY    ot.id_operador
+                        ORDER BY    ot.duracion_horas DESC    
+            ) AS posicion
+FROM        operadores op
+JOIN        ordenes_trabajo ot ON ot.id_operador = op.id_operador;       
+
+
+--Muestra el nombre del operador la duración de horas y numera cada orden dentro de cada operador de mayor a menor por horas
+SELECT
+            op.id_operador              AS 'ID',
+            op.nombre                   AS 'Nombre',
+            op.apellido                 AS 'Apellido',
+            ot.duracion_horas           AS 'Duracion',
+            ROW_NUMBER () OVER (
+                        PARTITION BY    ot.id_operador
+                        ORDER BY        ot.duracion_horas DESC
+            ) AS numeracion
+FROM        operadores op
+JOIN        ordenes_trabajo ot ON ot.id_operador = op.id_operador;
+
+--Muestra el nombre del operador el apellido la duración de horas y numera cada orden dentro de cada operador de mayor a menor por horas
+--Pero esta vez quiero que filtre solo donde posicion = 1 para ver la orden más larga de cada operador
+SELECT *
+FROM (
+    SELECT  op.id_operador      AS 'ID del operador',
+            op.nombre           AS 'Nombre',
+            op.apellido         AS 'Apellido',
+            ot.duracion_horas   AS 'Duracion',
+            ROW_NUMBER() OVER (
+                PARTITION BY ot.id_operador
+                ORDER BY ot.duracion_horas DESC
+            ) AS posicion
+    FROM    operadores op
+    JOIN    ordenes_trabajo ot ON ot.id_operador = op.id_operador
+) AS sub
+WHERE posicion = 1; 
+
+--Muestra el nombre del operador el apellido el id de la orden y numera cada orden dentro de cada operador de más antigua a más reciente por fecha
+--Pero esta vez filtra solo las primeras 2 órdenes de cada operado
+SELECT *
+FROM (
+    SELECT  op.id_operador      AS 'ID del operador',
+            op.nombre           AS 'Nombre',
+            op.apellido         AS 'Apellido',
+            ot.created_at       AS 'Fecha',
+            ROW_NUMBER() OVER (
+                PARTITION BY ot.id_operador
+                ORDER BY ot.created_at 
+            ) AS posicion
+    FROM    operadores op
+    JOIN    ordenes_trabajo ot ON ot.id_operador = op.id_operador
+) AS sub
+WHERE posicion <= 2; 
+
+--Muestra el nombre del operador el apellido la duración de horas y el total de horas de cada operador sin colapsar las filas
+SELECT              op.id_operador           AS 'ID del operador',
+                    op.nombre                AS 'Nombre',
+                    op.apellido              AS 'Apellido',
+                    ot.duracion_horas        AS 'Duracion',
+                    SUM (ot.duracion_horas)  OVER (
+                        PARTITION BY ot.id_operador
+                        ) AS horas
+            FROM        operadores op
+            JOIN        ordenes_trabajo ot ON ot.id_operador = op.id_operador;
+
+--Muestra las 3 órdenes más recientes de cada robot
+SELECT*
+FROM (
+        SELECT
+            r.id_robot                      AS 'ID del robot',
+            r.nombre                        AS 'Nombre',
+            ot.created_at                   AS 'Fecha',
+            ROW_NUMBER() OVER (
+                PARTITION BY r.id_robot
+                ORDER BY ot.created_at DESC 
+            ) AS posicion
+FROM        robots r
+JOIN        ordenes_trabajo ot ON ot.id_robot = r.id_robot
+) AS sub
+WHERE   posicion <= 3;
+
+--Muestra el nombre del robot, el nombre del operador y la duración de horas pero solo la orden con menos horas de cada robot
+SELECT *
+FROM
+(SELECT
+                r.id_robot                 AS 'ID',
+                r.nombre                   AS 'Nombre',
+                ot.duracion_horas          AS 'Duracion',
+                op.nombre                  AS 'Operador',
+                op.apellido                as 'Apellido',
+                ROW_NUMBER () OVER (
+                           PARTITION BY r.id_robot
+                           ORDER BY ot.duracion_horas 
+                ) AS posicion
+FROM            robots r
+JOIN            ordenes_trabajo ot ON ot.id_robot = r.id_robot
+JOIN            operadores op ON op.id_operador = ot.id_operador
+) AS sub
+WHERE posicion = 1; 
+
+
+
 
 
