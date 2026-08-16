@@ -1231,8 +1231,106 @@ HAVING              COUNT(*) > (
                             FROM (SELECT COUNT(*) AS total
                             FROM ordenes_trabajo
                             GROUP BY id_robot) AS sub
-);                 
+);
 
+--Muestra el nombre y apellido de todos los operadores que tengan órdenes en estado 'completado' sin repetir operadores
+SELECT
+                    DISTINCT
+                    op.id_operador              AS 'ID',
+                    op.nombre                   AS 'Nombre',
+                    op.apellido                 AS 'Apellido'
+FROM                operadores op
+INNER JOIN          ordenes_trabajo ot ON ot.id_operador = op.id_operador
+WHERE               ot.estado = 'competado';
+
+--Muestra el nombre del robot y el total de órdenes que tiene cada robot ordenado de mayor a menor incluyendo los robots que no tienen órdenes
+SELECT
+                    r.id_robot                           AS 'ID',
+                    r.nombre                             AS 'Nombre',
+                    COUNT(r.id_robot)                    AS 'Total'                    
+FROM                robots r
+LEFT JOIN           ordenes_trabajo ot ON ot.id_robot = r.id_robot
+GROUP BY            r.id_robot, r.nombre
+ORDER BY            COUNT(r.id_robot) DESC              
+WHERE               ot.estado = 'competado';                    
+
+
+--Muestra el nombre del operador su apellido y el promedio de horas de sus órdenes pero solo los operadores cuyo promedio sea mayor al promedio general de todas las órdenes
+SELECT
+                    op.id_operador              AS 'ID del operador',
+                    op.nombre                   AS 'Nombre',
+                    op.apellido                 AS 'Apellido',
+                    AVG(duracion_horas)         AS 'Total'
+FROM                operadores op
+JOIN                ordenes_trabajo ot ON ot.id_operador = op.id_operador
+GROUP BY            op.id_operador, op.nombre, op.apellido
+HAVING              AVG(duracion_horas) > (
+                                    SELECT
+                                            AVG(duracion_horas)
+                                    FROM    ordenes_trabajo);
+
+--Muestra el nombre del robot y el total de órdenes que tiene cada robot ordenado de mayor a menor incluyendo los robots que no tienen órdenes
+SELECT      r.id_robot              AS 'ID',
+            r.nombre                AS 'Nombre',
+            COUNT(ot.id_robot)      AS 'Total'
+FROM        robots r
+LEFT JOIN   ordenes_trabajo ot ON ot.id_robot = r.id_robot
+GROUP BY    r.id_robot, r.nombre
+ORDER BY    COUNT(ot.id_robot) DESC;
+
+
+--Muestra el nombre y apellido de todos los operadores que tengan órdenes en estado 'completado' sin repetir operadores
+SELECT      DISTINCT
+            op.id_operador      AS 'ID',
+            op.nombre           AS 'Nombre',
+            op.apellido         AS 'Apellido'
+FROM        operadores op
+INNER JOIN  ordenes_trabajo ot ON ot.id_operador = op.id_operador
+WHERE       ot.estado = 'completado';
+
+--Muestra los operadores cuya cantidad de órdenes sea menor al promedio de órdenes de todos los operadores
+SELECT
+                    op.id_operador              AS 'ID',
+                    op.nombre                   AS 'Nombre',
+                    op.apellido                 AS 'Apellido',
+                    COUNT(*)                    AS 'Total'
+FROM                operadores op
+JOIN                ordenes_trabajo ot ON ot.id_operador= op.id_operador
+GROUP BY            op.id_operador, op.apellido, op.nombre
+HAVING              COUNT(*) < (
+                            SELECT
+                                    AVG(total)
+                            FROM    (SELECT
+                                            COUNT(*) AS total
+                                    FROM    ordenes_trabajo
+                                    GROUP BY id_operador) AS sub);
+
+
+--Muestra el nombre del operador su apellido y el total de horas trabajadas de todas sus órdenes ordenado de mayor a menor pero solo los operadores que tengan más de 20 horas en total
+SELECT
+                    op.id_operador              AS 'ID',
+                    op.nombre                   AS 'Nombre',
+                    op.apellido                 AS 'Apeliido',
+                    SUM(duracion_horas)                    AS 'Total'
+FROM                operadores op
+JOIN                ordenes_trabajo OT ON ot.id_operador= op.id_operador
+GROUP BY            op.id_operador, op.nombre, op.apellido
+HAVING              SUM(duracion_horas) > 20
+ORDER BY            SUM(duracion_horas) DESC;
+
+--Muestra el nombre del robot el nombre del operador y la fecha de la orden de todas las órdenes que estén en estado 'en progreso'
+SELECT
+                    r.id_robot                  AS 'ID del robot',
+                    r.nombre                    AS 'Nombre del robot',
+                    op.id_operador              AS 'ID del operador',
+                    op.nombre                   AS 'Nombre',
+                    op.apellido                 AS 'Apellido',
+                    ot.created_at               AS 'Fecha'
+FROM                robots r
+JOIN                ordenes_trabajo ot ON ot.id_robot = r.id_robot
+JOIN                operadores op ON op.id_operador = ot.id_operador
+WHERE               ot.estado = 'en_progreso';        
+                                                                            
 
 --Muestra el nombre del operador su apellido y el promedio de horas de sus órdenes pero solo los operadores cuyo promedio sea mayor al promedio general de todas las órdenes
 SELECT
@@ -1467,7 +1565,7 @@ FROM
 (SELECT
                 r.id_robot                 AS 'ID',
                 r.nombre                   AS 'Nombre',
-                ot.duracion_horas          AS 'Duracion',
+                ot.duracion_horas,
                 op.nombre                  AS 'Operador',
                 op.apellido                as 'Apellido',
                 ROW_NUMBER () OVER (
@@ -1480,7 +1578,311 @@ JOIN            operadores op ON op.id_operador = ot.id_operador
 ) AS sub
 WHERE posicion = 1; 
 
+--Muestra el nombre del operador, el nombre del robot, la duración de horas, el total de horas por operador y el promedio de horas por operador pero solo muestra los operadores cuya orden más larga supera el promedio general de todas las órdenes
+
+SELECT*
+FROM
+(SELECT
+                op.id_operador          AS 'ID del operador',
+                r.id_robot              AS 'ID del robot',
+                op.nombre               AS 'Nombre del operador',
+                op.apellido             AS 'Apellid del oerador',
+                ot.duracion_horas,
+                AVG(ot.duracion_horas) OVER (
+                    PARTITION BY op.id_operador
+                ) AS promedio_operador,
+                SUM(ot.duracion_horas) OVER (
+                    PARTITION BY op.id_operador
+                ) AS total_horas,
+                AVG(ot.duracion_horas) OVER ()
+                AS promedio_general,
+                ROW_NUMBER() OVER (
+                    PARTITION BY op.id_operador
+                ORDER BY ot.duracion_horas DESC
+                ) AS posicion
+FROM            robots r
+JOIN            ordenes_trabajo ot ON ot.id_robot = r.id_robot
+JOIN            operadores op ON op.id_operador = ot.id_operador
+) AS sub
+WHERE posicion = 1
+AND   duracion_horas > promedio_general;
 
 
 
+--Muestra el nombre del operador, el robot que más veces ha atendido ese operador, 
+--cuántas veces lo atendió y el porcentaje que representa ese robot del total de órdenes del operado
+SELECT *
+FROM (
+    SELECT *,
+        ROW_NUMBER() OVER (
+            PARTITION BY id_operador
+            ORDER BY veces_atendidas DESC
+        ) AS posicion
+    FROM (
+        SELECT
+            op.id_operador,
+            op.nombre,
+            op.apellido,
+            r.id_robot,
+            r.nombre AS nombre_robot,
+            COUNT(ot.id_orden) OVER (
+                PARTITION BY op.id_operador, r.id_robot
+            ) AS veces_atendidas,
+            COUNT(ot.id_orden) OVER (
+                PARTITION BY op.id_operador, r.id_robot
+            ) / COUNT(ot.id_orden) OVER (
+                PARTITION BY op.id_operador
+            ) * 100 AS porcentaje
+        FROM        operadores op
+        JOIN        ordenes_trabajo ot ON ot.id_operador = op.id_operador
+        JOIN        robots r ON r.id_robot = ot.id_robot
+    ) AS sub1
+) AS sub2
+WHERE posicion = 1;
 
+--Muestra el nombre y apellido de los operadores que tienen al menos una orden con duración mayor al promedio general de todas las órdenes
+SELECT
+            op.nombre           AS 'Nombre',
+            op.apellido         AS 'Apellido'
+FROM        operadores op
+WHERE       id_operador IN (
+                SELECT
+                        id_operador
+                FROM    ordenes_trabajo
+                WHERE   duracion_horas > (
+                    SELECT
+                            AVG (duracion_horas)
+                            FROM    ordenes_trabajo
+                )       
+);            
+            
+
+--Muestra el nombre del robot y su total de órdenes pero solo los robots que tienen más órdenes que el robot con menos órdenes
+SELECT
+            r.nombre                 AS 'Nombre',
+            r.id_robot               AS 'ID',
+            COUNT (ot.id_orden)      AS 'Total'
+FROM        robots r
+JOIN        ordenes_trabajo ot ON ot.id_robot = r.id_robot
+GROUP BY    r.nombre, r.id_robot
+HAVING      COUNT(id_orden) > (
+                SELECT MIN (total) 
+                FROM    (
+                    SELECT  COUNT(id_orden) AS total
+                    FROM    ordenes_trabajo
+                    GROUP BY    id_robot
+
+                ) as sub
+);
+
+
+--Muestra el nombre y apellido del operador y el total de órdenes que tiene cada operador, pero solo muestra los operadores que tienen más órdenes que el promedio de órdenes por operador
+SELECT
+            op.id_operador          AS 'ID',
+            op.nombre               AS 'Nombre',
+            op.apellido             AS 'Apellido',
+            COUNT (*)               AS 'Total'
+FROM        operadores op
+GROUP BY    op.id_operador, op.nombre, op.apellido
+HAVING      COUNT (*) > (
+                    SELECT AVG(total)
+                    FROM   (
+                        SELECT
+                        COUNT(*) AS total
+                        FROM    ordenes_trabajo
+                        GROUP BY    id_operador
+                            ) AS sub
+);     
+
+
+--Muestra el nombre del operador y el nombre del robot de las órdenes que tienen una duración mayor a la duración máxima de las órdenes del operador con menos órdenes totales
+SELECT
+            op.id_operador          AS 'ID del operador',
+            op.nombre               AS 'Nombre',
+            op.apellido             AS 'Apellido',
+            r.id_robot              AS 'ID del robot'
+FROM        operadores op            
+JOIN        ordenes_trabajo ot ON ot.id_operador = op.id_operador
+JOIN        robots r ON r.id_robot = ot.id_robot
+WHERE       duracion_horas > (
+                    SELECT MIN (total)
+                    FROM    (
+                        SELECT MAX (duracion_horas) AS total
+                        FROM ordenes_trabajo
+                        WHERE   id_operador = (
+                            SELECT      id_operador
+                            FROM        operadores
+                            GROUP BY    id_operador
+                            ORDER BY    COUNT(*)
+                            LIMIT       1
+                        )
+                    ) AS sub
+);
+
+
+--Muestra el nombre del operador, el total de órdenes que tiene, 
+--y una columna extra que diga 'Por encima del promedio' o 'Por debajo del promedio' según si tiene más o menos órdenes que el promedio general de órdenes por operador
+SELECT 
+            op.id_operador          AS 'ID del operador',
+            op.nombre               AS 'Nombre',
+            op.apellido             AS 'Apellido',
+            COUNT (*)               AS 'Total',
+            CASE 
+    WHEN COUNT(*) > (
+        SELECT AVG(total)
+        FROM    (
+            SELECT COUNT(*) AS total
+            FROM    ordenes_trabajo
+            GROUP BY id_operador
+        ) AS sub
+    )
+    THEN 'Por encima del promedio'
+    ELSE 'Por debajo del promedio'
+END 'estado'   
+FROM        operadores op
+JOIN        ordenes_trabajo ot ON ot.id_operador = op.id_operador
+GROUP BY    op.id_operador, op.nombre, op.apellido;
+
+
+--Muestra el nombre del operador y su total de órdenes, pero usando una subconsulta en el JOIN para calcular el total de órdenes por operador
+SELECT
+            op.id_operador          AS 'ID del operador',
+            op.nombre               AS 'Nombre',
+            op.apellido             AS 'Apellido',
+            sub.total               AS 'Total'
+FROM        operadores op
+JOIN        (SELECT     
+                        id_operador,
+                        COUNT (*)   AS total
+            FROM         ordenes_trabajo
+            GROUP BY    id_operador
+) AS sub
+            ON sub.id_operador = op.id_operador;           
+
+--Muestra el nombre y apellido de los operadores que tengan más órdenes que el operador que menos órdenes tiene.
+SELECT
+            op.nombre AS 'Nombre',
+            op.apellido AS 'Apellido'
+FROM        operadores op
+JOIN         ordenes_trabajo ot
+            ON ot.id_operador = op.id_operador
+GROUP BY
+            op.id_operador,
+            op.nombre,
+            op.apellido
+HAVING      COUNT(ot.id_orden) > (
+    SELECT  MIN(total)
+    FROM (
+    SELECT
+            id_operador,
+            COUNT(id_orden) AS total
+    FROM ordenes_trabajo
+    GROUP BY id_operador
+    ) AS sub
+ );
+
+
+--Muestra el nombre de cada robot y su total de órdenes, pero solo los robots cuyo total sea igual al máximo de órdenes que tiene cualquier robot.
+SELECT
+            r.id_robot          AS 'ID del robot',
+            r.nombre            AS 'Nombre',
+            COUNT (ot.id_orden)           AS 'Total'
+FROM        robots r
+JOIN        ordenes_trabajo ot ON ot.id_robot = r.id_robot
+GROUP BY    r.id_robot, r.nombre
+HAVING      COUNT (ot.id_robot) = (
+            SELECT      MAX(total)
+            FROM        (
+                        SELECT
+                                COUNT(id_orden) AS total
+                                FROM    ordenes_trabajo
+                                GROUP BY id_robot
+            ) AS sub
+
+);
+
+--Muestra el nombre y apellido de los operadores junto con la cantidad de órdenes que tienen asignadas, 
+--pero solo muestra los operadores cuya cantidad de órdenes sea mayor al promedio de órdenes por operador.
+SELECT
+            op.id_operador          AS 'ID del operador',
+            op.nombre               AS 'Nombre',
+            op.apellido             AS 'Apellido',
+            COUNT (id_orden)        AS 'Total'
+FROM        operadores op
+JOIN        ordenes_trabajo ot ON ot.id_operador = op.id_operador
+GROUP BY    op.id_operador, op.nombre, op.apellido
+HAVING      COUNT (id_orden) > (
+            SELECT AVG(total)
+            FROM        (
+                SELECT
+                    id_operador,
+                    AVG(id_orden) AS total
+            FROM    ordenes_trabajo
+            GROUP BY id_operador        
+            ) AS sub
+);
+
+
+--Muestra el nombre del robot y su duración promedio de órdenes,
+--pero solo los robots cuya duración promedio sea mayor a la duración promedio del robot más usado (el que tiene más órdenes)
+SELECT
+            r.id_robot                  AS 'ID',
+            r.nombre                    AS 'Nombre',
+            AVG(ot.duracion_horas)      AS 'promedio'
+FROM        robots r
+JOIN        ordenes_trabajo ot ON ot.id_robot = r.id_robot 
+GROUP BY    r.id_robot, r.nombre
+HAVING      AVG(ot.duracion_horas) > (
+                            SELECT  AVG(duracion_horas)
+                            FROM    ordenes_trabajo
+                                    WHERE id_robot = (
+                                    SELECT id_robot
+                                    FROM ordenes_trabajo
+                                    GROUP BY id_robot
+                                    ORDER BY COUNT(*) DESC
+                                    LIMIT 1)
+                           
+);
+
+--Muestra el nombre y apellido del operador, el nombre del robot, 
+--el total de órdenes que tienen juntos, y una columna que diga 'Dupla estrella' si su total de órdenes juntos es mayor al promedio de órdenes por dupla operador-robot, 
+--o 'Dupla normal' si no lo es. Solo muestra las duplas que hayan trabajado con robots que tengan más órdenes que el promedio de órdenes por robot
+SELECT
+                op.id_operador      AS 'ID del operador',
+                op.nombre           AS 'Nombre',
+                op.apellido         AS 'Apellido',
+                r.id_robot          AS 'ID del robot',
+                r.nombre            AS 'Nombre del robot',
+                COUNT(ot.id_orden)  AS 'Total',
+                CASE
+                WHEN COUNT(ot.id_orden) > (
+                SELECT AVG(total)
+                FROM (
+                SELECT COUNT(*) AS total
+                FROM ordenes_trabajo
+                GROUP BY id_operador, id_robot
+                ) AS sub
+                )
+                THEN 'Dupla estrella'
+                ELSE 'Dupla normal'
+                END AS 'Estado'
+FROM            operadores op
+JOIN            ordenes_trabajo ot ON   ot.id_operador = op.id_operador
+JOIN            robots r ON r.id_robot = ot.id_robot
+GROUP BY        op.id_operador, op.nombre, op.apellido, r.id_robot, r.nombre
+HAVING          r.id_robot IN (
+                        SELECT id_robot
+                        FROM ordenes_trabajo
+                        GROUP BY id_robot
+HAVING          COUNT(ot.id_orden) > (
+                            SELECT      AVG(total)
+                            FROM        (
+                                        SELECT
+                                            COUNT (*) AS total
+                                        FROM
+                                            ordenes_trabajo
+                                        GROUP BY
+                                             id_robot    
+                            ) AS sub1
+)
+);
