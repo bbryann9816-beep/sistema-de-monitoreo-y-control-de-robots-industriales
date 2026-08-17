@@ -1886,3 +1886,68 @@ HAVING          COUNT(ot.id_orden) > (
                             ) AS sub1
 )
 );
+
+--Muestra el nombre del operador, el total de órdenes y su posición en el ranking de mayor a menor órdenes
+SELECT*
+FROM    (
+        SELECT
+                op.id_operador      AS 'ID',
+                op.nombre           AS 'Nombre',
+                op.apellido         AS 'Apellido',
+                COUNT (ot.id_orden) AS 'Total', 
+                ROW_NUMBER() OVER (
+                ORDER BY COUNT(ot.id_orden) DESC
+) AS posicion
+        FROM
+                operadores op
+        JOIN    ordenes_trabajo ot ON ot.id_operador = op.id_operador
+        GROUP BY
+                op.id_operador, op.nombre, op.apellido            
+
+) AS sub;
+
+--Muestra el nombre del operador, total de órdenes y su ranking usando RANK y DENSE_RANK de mayor a menor órdenes
+SELECT*
+FROM    (
+        SELECT
+                op.id_operador      AS 'ID',
+                op.nombre           AS 'Nombre',
+                op.apellido         AS 'Apellido',
+                COUNT (ot.id_orden) AS 'Total', 
+                RANK() OVER (
+                ORDER BY COUNT(ot.id_orden) DESC 
+                            ) AS posicion,
+                DENSE_RANK () OVER (
+                ORDER BY COUNT(ot.id_orden) DESC            
+                ) AS posicion2
+        FROM
+                operadores op
+        JOIN    ordenes_trabajo ot ON ot.id_operador = op.id_operador
+        GROUP BY
+                op.id_operador, op.nombre, op.apellido            
+
+) AS sub;
+
+--Muestra el nombre del operador, el nombre del robot, el total de órdenes juntos y su ranking de órdenes dentro de cada robot usando DENSE_RANK
+SELECT*
+FROM    (
+        SELECT
+                op.id_operador      AS 'ID del operador',
+                op.nombre           AS 'Nombre',
+                op.apellido         AS 'Apellido',
+                r.id_robot          AS 'ID del robot',
+                r.nombre            AS 'Nombre del robot',
+                COUNT (ot.id_orden) AS 'Total', 
+                DENSE_RANK () OVER (
+                PARTITION BY r.id_robot
+                ORDER BY COUNT(ot.id_orden) DESC            
+                ) AS posicion2
+        FROM
+                operadores op
+        JOIN    ordenes_trabajo ot ON ot.id_operador = op.id_operador
+        JOIN    robots r ON r.id_robot = ot.id_robot
+        GROUP BY
+                op.id_operador, op.nombre, op.apellido, r.id_robot, r.nombre            
+
+) AS sub;
+
