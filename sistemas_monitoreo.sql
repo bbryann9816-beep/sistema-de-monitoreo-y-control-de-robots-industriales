@@ -1951,3 +1951,219 @@ FROM    (
 
 ) AS sub;
 
+--Muestra el nombre del operador, el total de órdenes, el promedio de órdenes de todos los operadores y la suma total de órdenes de todos los operadores en cada fila
+SELECT*
+FROM    (
+        SELECT
+                op.id_operador      AS 'ID del operador',
+                op.nombre           AS 'Nombre',
+                op.apellido         AS 'Apellido',
+                COUNT (ot.id_orden) AS 'Total', 
+                AVG (COUNT (ot.id_orden)) OVER (
+                PARTITION BY ot.id_operador    
+                ORDER BY op.id_operador         
+                ) AS promedio_ordenes,
+                SUM (COUNT (ot.id_orden)) OVER (
+                PARTITION BY ot.id_operador    
+                ORDER BY op.id_operador         
+                ) AS suma_total
+        FROM
+                operadores op
+        JOIN    ordenes_trabajo ot ON ot.id_operador = op.id_operador
+        GROUP BY
+                op.id_operador, op.nombre, op.apellido           
+
+) AS sub;
+
+--Muestra el nombre del operador, el nombre del robot, el total de órdenes juntos, el promedio de órdenes dentro de cada robot y la suma total de órdenes dentro de cada robot
+SELECT*
+FROM    (
+        SELECT
+                op.id_operador      AS 'ID del operador',
+                op.nombre           AS 'Nombre',
+                op.apellido         AS 'Apellido',
+                r.id_robot          AS 'ID del robot',
+                r.nombre            AS 'Nombre del robot',
+                COUNT (ot.id_orden) AS 'Total', 
+                AVG (COUNT (ot.id_orden)) OVER (
+                ORDER BY r.id_robot         
+                ) AS promedio_ordenes,
+                SUM (COUNT (ot.id_orden)) OVER (
+                ORDER BY r.id_robot         
+                ) AS suma_total
+        FROM
+                operadores op
+        JOIN    ordenes_trabajo ot ON ot.id_operador = op.id_operador
+        JOIN    robots r ON r.id_robot = ot.id_robot
+        GROUP BY
+                op.id_operador, op.nombre, op.apellido, r.id_robot, r.nombre            
+
+) AS sub;
+
+--Muestra el nombre del operador, el nombre del robot, el total de órdenes juntos, su ranking por robot con DENSE_RANK, 
+--el promedio de órdenes por robot, y una columna que diga 'Arriba del promedio' si su total es mayor al promedio del robot o 'Abajo del promedio' si no, 
+--pero solo muestra los operadores que estén en el top 2 de cada robot
+SELECT *
+FROM        (
+            SELECT
+                op.id_operador      AS 'ID del operador',
+                op.nombre           AS 'Nombre',
+                op.apellido         AS 'Apellido',
+                r.id_robot          AS 'ID del robot',
+                r.nombre            AS 'Nombre del robot',
+                COUNT (ot.id_orden) AS 'Total', 
+                DENSE_RANK () OVER (
+                PARTITION BY r.id_robot
+                ORDER BY COUNT(ot.id_orden) DESC             
+                ) AS 'ranking',
+                AVG (COUNT (ot.id_orden)) OVER (
+                PARTITION BY r.id_robot         
+                ) AS promedio_ordenes,
+                CASE 
+                    WHEN
+                          COUNT(ot.id_orden) > 
+                          AVG(COUNT(ot.id_orden)) OVER (
+                            PARTITION BY r.id_robot
+                          )
+                    THEN  'Arriba del promedio'
+                    ELSE  'Abajo del promedio'
+                END AS 'Estado'
+            FROM
+                operadores op
+            JOIN    ordenes_trabajo ot ON ot.id_operador = op.id_operador
+            JOIN    robots r ON r.id_robot = ot.id_robot
+            GROUP BY
+                op.id_operador, op.nombre, op.apellido, r.id_robot, r.nombre 
+)AS sub
+WHERE ranking <= 2 ;
+
+--Muestra el nombre del operador, el total de órdenes, el total de órdenes del operador anterior y del operador siguiente ordenado de mayor a menor
+            SELECT
+                op.id_operador      AS 'ID del operador',
+                op.nombre           AS 'Nombre',
+                op.apellido         AS 'Apellido',
+                COUNT (ot.id_orden) AS 'Total', 
+                LAG (COUNT (ot.id_orden)) OVER (
+                    ORDER BY    COUNT (ot.id_orden) DESC
+                ) AS 'anterior',
+                LEAD (COUNT (ot.id_orden)) OVER (
+                    ORDER BY    COUNT (ot.id_orden) DESC
+                ) AS 'siguiente'
+            FROM
+                    operadores op
+            JOIN    ordenes_trabajo ot ON ot.id_operador = op.id_operador
+            GROUP BY
+                op.id_operador, op.nombre, op.apellido;
+
+--Muestra el nombre del operador, el nombre del robot, el total de órdenes juntos, el total de órdenes de la dupla anterior y siguiente dentro de cada robot, ordenado de mayor a menor
+        SELECT
+                op.id_operador      AS 'ID del operador',
+                op.nombre           AS 'Nombre',
+                op.apellido         AS 'Apellido',
+                r.id_robot          AS 'ID del robot',
+                r.nombre            AS 'Nombre del robot',
+                COUNT (ot.id_orden) AS 'Total',
+                LAG (COUNT (ot.id_orden)) OVER (
+                    PARTITION BY r.id_robot
+                    ORDER BY    COUNT (ot.id_orden) DESC
+                ) AS 'anterior',
+                LEAD (COUNT (ot.id_orden)) OVER (
+                    PARTITION BY r.id_robot
+                    ORDER BY    COUNT (ot.id_orden) DESC
+                ) AS 'siguiente'
+            FROM
+                operadores op
+            JOIN    ordenes_trabajo ot ON ot.id_operador = op.id_operador
+            JOIN    robots r ON r.id_robot = ot.id_robot
+            GROUP BY
+                op.id_operador, op.nombre, op.apellido, r.id_robot, r.nombre;
+
+--Muestra todos los operadores aunque no tengan órdenes, con el total de órdenes que tiene cada uno
+SELECT
+            op.id_operador          AS 'ID del operador',
+            op.nombre               AS 'Nombre',
+            op.apellido             AS 'Apellido',
+            COUNT(ot.id_orden)      AS 'Total'
+FROM        operadores op
+LEFT JOIN   ordenes_trabajo ot ON ot.id_operador = op.id_operador
+GROUP BY    op.id_operador, op.nombre, op.apellido
+;        
+
+--Muestra todos los robots aunque no tengan órdenes, con el total de órdenes y el nombre del operador que los usó
+SELECT
+            r.id_robot          AS 'ID del robot',
+            r.nombre            AS 'Nombre del robot',
+            op.id_operador      AS 'ID del operador',
+            op.nombre           AS 'Nombre',
+            op.apellido         AS 'Apellido',
+            COUNT(ot.id_orden)  As 'Total'
+FROM        robots r
+LEFT JOIN   ordenes_trabajo ot ON ot.id_robot = r.id_robot
+LEFT JOIN   operadores op ON op.id_operador = ot.id_operador
+GROUP BY    op.id_operador, op.nombre, op.apellido, r.id_robot, r.nombre;
+
+--Muestra todos los operadores aunque no tengan órdenes, con el total de órdenes, el nombre del robot que usaron y una columna que diga 'Sin órdenes' si el total es 0 o 'Con órdenes' si no
+SELECT
+            r.id_robot          AS 'ID del robot',
+            r.nombre            AS 'Nombre del robot',
+            op.id_operador      AS 'ID del operador',
+            op.nombre           AS 'Nombre',
+            op.apellido         AS 'Apellido',
+            COUNT(ot.id_orden)  As 'Total',
+            CASE 
+                WHEN COUNT(ot.id_orden) = 0
+            THEN 'Sin ordenes'  
+            ELSE  'Con ordenes'
+            END AS 'Estado'
+FROM        robots r
+LEFT JOIN   ordenes_trabajo ot ON ot.id_robot = r.id_robot
+LEFT JOIN   operadores op ON op.id_operador = ot.id_operador
+GROUP BY    op.id_operador, op.nombre, op.apellido, r.id_robot, r.nombre;
+
+
+--Muestra los operadores que tengan al menos una orden de trabajo
+SELECT
+                op.id_operador      AS 'ID del operador',
+                op.nombre           AS 'Nombre',
+                op.apellido         AS 'Apellido'
+FROM            operadores op
+WHERE EXISTS    (
+                SELECT      1
+                FROM        ordenes_trabajo ot
+                WHERE   ot.id_operador = op.id_operador    
+);            
+
+--Muestra los operadores que NO tengan ninguna orden de trabajo
+SELECT
+                op.id_operador      AS 'ID del operador',
+                op.nombre           AS 'Nombre',
+                op.apellido         AS 'Apellido'
+FROM            operadores op
+WHERE           op.id_operador NOT IN (
+                    SELECT id_operador
+                    FROM   ordenes_trabajo);
+
+--Muestra el ID de la orden, el nombre del operador, la fecha de la orden, el año, mes y día de cada orden
+SELECT
+                op.id_operador        AS 'ID del operador',
+                op.nombre             AS 'Nombre',
+                op.apellido           AS 'Apellido',
+                ot.id_orden           AS 'ID de la orden',
+                ot.created_at         AS 'Fecha',
+                YEAR(ot.created_at)   AS 'Año',
+                DAY(ot.created_at)    AS 'Dia',
+                MONTH (ot.created_at) AS 'Mes'     
+FROM            operadores op
+JOIN            ordenes_trabajo ot ON ot.id_operador = op.id_operador;
+
+--Muestra el nombre del operador, la fecha de la orden y cuántos días han pasado desde la orden hasta hoy
+SELECT
+                op.id_operador        AS 'ID del operador',
+                op.nombre             AS 'Nombre',
+                op.apellido           AS 'Apellido',
+                ot.id_orden           AS 'ID de la orden',
+                ot.created_at         AS 'Fecha de la orden',
+                DATEDIFF(CURDATE(), ot.created_at)
+FROM            operadores op
+JOIN            ordenes_trabajo ot ON ot.id_operador = op.id_operador;
+                
